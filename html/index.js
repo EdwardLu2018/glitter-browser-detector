@@ -11,6 +11,8 @@ let overlayCanvas = null;
 
 let glitterDetector = null;
 
+let logs = [];
+
 function dec2bin(dec) {
     return (dec >>> 0).toString(2);
 }
@@ -33,8 +35,15 @@ function drawQuad(quad) {
         overlayCtx.fillText(dec2bin(code), quad.center.x, quad.center.y);
     overlayCtx.stroke();
 
-    const log = `${width},${height},${window.orientation},${quad.corners[0].x},${quad.corners[0].y},${quad.corners[1].x},${quad.corners[1].y},${quad.corners[2].x},${quad.corners[2].y},${quad.corners[3].x},${quad.corners[3].y},${glitterDetector.imu.orientation.alpha},${glitterDetector.imu.orientation.beta},${glitterDetector.imu.orientation.gamma}`;
-    console.log(log);
+    const log = `${width},${height},${window.orientation},${quad.corners[0].x},${quad.corners[0].y},${quad.corners[1].x},${quad.corners[1].y},${quad.corners[2].x},${quad.corners[2].y},${quad.corners[3].x},${quad.corners[3].y},${glitterDetector.imu.deviceOrientation.alpha},${glitterDetector.imu.deviceOrientation.beta},${glitterDetector.imu.deviceOrientation.gamma}`;
+    // console.log(log);
+    logs.push(log);
+}
+
+function printLog() {
+    for (var i = 0; i < logs.length; i++) {
+        console.log(logs[i]);
+    }
 }
 
 function drawQuads(quads) {
