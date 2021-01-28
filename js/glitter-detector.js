@@ -43,9 +43,9 @@ export class GlitterDetector {
         }
 
         this.imu = null;
-        if (Utils.isMobile()) {
+        // if (Utils.isMobile()) {
             this.imu = new DeviceIMU();
-        }
+        // }
         this.grayScaleMedia = new GrayScaleMedia(this.video, this.width, this.height);
     }
 

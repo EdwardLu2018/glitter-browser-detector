@@ -31,6 +31,9 @@ function drawQuad(quad) {
         overlayCtx.fillStyle = "blue";
         overlayCtx.fillText(dec2bin(code), quad.center.x, quad.center.y);
     overlayCtx.stroke();
+
+    const log = `${width},${height},${window.orientation},${quad.corners[0].x},${quad.corners[0].y},${quad.corners[1].x},${quad.corners[1].y},${quad.corners[2].x},${quad.corners[2].y},${quad.corners[3].x},${quad.corners[3].y},${glitterDetector.imu.orientation.alpha},${glitterDetector.imu.orientation.beta},${glitterDetector.imu.orientation.gamma}`;
+    console.log(log);
 }
 
 function drawQuads(quads) {
@@ -104,8 +107,8 @@ window.onload = () => {
     document.body.appendChild(overlayCanvas);
 
     glitterDetector = new Glitter.GlitterDetector(code, targetFps, width, height, video);
-    // glitterDetector.setOptions({
-    //     printPerformance: true,
-    // });
+    glitterDetector.setOptions({
+        // printPerformance: true,
+    });
     glitterDetector.start();
 }
