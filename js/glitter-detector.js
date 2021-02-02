@@ -1,59 +1,52 @@
-import {GrayScaleMedia} from "./grayscale";
-import {GlitterModule} from "./glitter-module";
+
 import {Timer} from "./timer";
+import {Utils} from "./utils/utils";
 import {DeviceIMU} from "./imu";
-import {Utils} from './utils/utils';
+import {GrayScale} from "./grayscale";
+import {GlitterModule} from "./glitter-module";
 
 export class GlitterDetector {
-    constructor(code, targetFps, width, height, video) {
+    constructor(code, targetFps, source, options) {
         this.code = code;
         this.targetFps = targetFps; // FPS/Hz
         this.fpsInterval = 1000 / this.targetFps; // ms
 
-        this.origWidth = width;
-        this.origHeight = height;
-
-        this.width = width;
-        this.height = height;
+        this.source = source;
+        this.sourceWidth = this.source.options.width;
+        this.sourceHeight = this.source.options.height;
 
         this.imageData = null;
         this.imageDecimate = 1.0;
 
         this.options = {
             printPerformance: false,
-            maxImageDecimationFactor: 10,
-            imageDecimationDelta: 0.3,
+            maxImageDecimationFactor: 3,
+            imageDecimationDelta: 0.1,
             rangeThreshold: 45,
             quadSigma: 1.0,
             refineEdges: 1,
             decodeSharpening: 0.25,
             minWhiteBlackDiff: 20,
         }
-
-        if (video) {
-            this.video = video;
-        }
-        else {
-            this.video = document.createElement("video");
-            this.video.setAttribute("autoplay", "");
-            this.video.setAttribute("muted", "");
-            this.video.setAttribute("playsinline", "");
-        }
+        this.setOptions(options);
 
         this.imu = new DeviceIMU();
-        this.grayScaleMedia = new GrayScaleMedia(this.video, this.width, this.height);
+        this.grayScale = new GrayScale(this.sourceWidth, this.sourceHeight);
     }
 
     setOptions(options) {
-        this.options = Object.assign(this.options, options);
+        if (options) {
+            this.options = Object.assign(this.options, options);
+        }
     }
 
-    start() {
-        this.grayScaleMedia.requestStream()
-            .then(source => {
+    init() {
+        this.source.init()
+            .then((source) => {
+                this.grayScale.attachElem(source);
                 this.onInit(source);
             })
-            .catch(err => {
+            .catch((err) => {
                 console.warn("ERROR: " + err);
             });
     }
@@ -66,18 +59,16 @@ export class GlitterDetector {
             _this.timer.run();
         }
 
-        this.glitterModule = new GlitterModule(this.code, this.width, this.height, this.options, startTick);
-        this.imu.start();
+        this.glitterModule = new GlitterModule(this.code, this.sourceWidth, this.sourceHeight, this.options, startTick);
+        this.imu.init();
 
         const initEvent = new CustomEvent("onGlitterInit", {detail: {source: source}});
         window.dispatchEvent(initEvent);
     }
 
-    resize(width, height) {
-        this.width = width;
-        this.height = height;
-        this.grayScaleMedia.resize(this.width, this.height);
-        this.glitterModule.resize(this.width, this.height);
+    decimate(width, height) {
+        this.grayScale.resize(width, height);
+        this.glitterModule.resize(width, height);
         this.glitterModule.setQuadDecimate(this.imageDecimate);
     }
 
@@ -86,7 +77,7 @@ export class GlitterDetector {
         // console.log(start - this.prev, this.timer.getError());
         this.prev = start;
 
-        this.imageData = this.grayScaleMedia.getPixels();
+        this.imageData = this.grayScale.getPixels();
         this.glitterModule.saveGrayscale(this.imageData);
 
         const mid = Date.now();
@@ -103,7 +94,7 @@ export class GlitterDetector {
             if (this.imageDecimate < this.options.maxImageDecimationFactor) {
                 this.imageDecimate += this.options.imageDecimationDelta;
                 this.imageDecimate = Utils.round2(this.imageDecimate);
-                this.resize(this.origWidth/this.imageDecimate, this.origHeight/this.imageDecimate)
+                this.decimate(this.sourceWidth/this.imageDecimate, this.sourceHeight/this.imageDecimate)
 
                 const calibrateEvent = new CustomEvent("onGlitterCalibrate", {detail: {decimationFactor: this.imageDecimate}});
                 window.dispatchEvent(calibrateEvent);

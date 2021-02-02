@@ -1,24 +1,27 @@
-let width = window.innerWidth;
-let height = window.innerHeight;
+var code = 0xaf;
+var targetFps = 30;
 
-const code = 0xaf;
-const targetFps = 30;
+var stats = null;
+var logs = [];
 
-let stats = null;
-let videoSource = null;
-let videoCanvas = null;
-let overlayCanvas = null;
+var glitterSource = new Glitter.GlitterSource();
 
-let glitterDetector = null;
+var overlayCanvas = document.createElement("canvas");
+overlayCanvas.id = "overlay";
+overlayCanvas.style.position = "absolute";
+overlayCanvas.style.top = "0px";
+overlayCanvas.style.left = "0px";
+overlayCanvas.width = glitterSource.options.width;
+overlayCanvas.height = glitterSource.options.height;
 
-let logs = [];
-
-function dec2bin(dec) {
-    return (dec >>> 0).toString(2);
-}
+var glitterDetector = new Glitter.GlitterDetector(code, targetFps, glitterSource);
+glitterDetector.setOptions({
+    printPerformance: true,
+});
+glitterDetector.init();
 
 function drawQuad(quad) {
-    const overlayCtx = overlayCanvas.getContext("2d");
+    var overlayCtx = overlayCanvas.getContext("2d");
 
     overlayCtx.beginPath();
         overlayCtx.lineWidth = 5;
@@ -32,11 +35,10 @@ function drawQuad(quad) {
         overlayCtx.font = "bold 20px Arial";
         overlayCtx.textAlign = "center";
         overlayCtx.fillStyle = "blue";
-        overlayCtx.fillText(dec2bin(code), quad.center.x, quad.center.y);
+        overlayCtx.fillText(Glitter.Utils.dec2bin(code), quad.center.x, quad.center.y);
     overlayCtx.stroke();
 
     const log = `${width},${height},${window.orientation},${quad.corners[0].x},${quad.corners[0].y},${quad.corners[1].x},${quad.corners[1].y},${quad.corners[2].x},${quad.corners[2].y},${quad.corners[3].x},${quad.corners[3].y},${glitterDetector.imu.deviceOrientation.alpha},${glitterDetector.imu.deviceOrientation.beta},${glitterDetector.imu.deviceOrientation.gamma}`;
-    // console.log(log);
     logs.push(log);
 }
 
@@ -47,8 +49,8 @@ function printLog() {
 }
 
 function drawQuads(quads) {
-    const overlayCtx = overlayCanvas.getContext("2d");
-    overlayCtx.clearRect(0, 0, width, height);
+    var overlayCtx = overlayCanvas.getContext("2d");
+    overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
 
     for (var i = 0; i < quads.length; i++) {
         drawQuad(quads[i]);
@@ -59,66 +61,33 @@ window.addEventListener("onGlitterInit", (e) => {
     stats = new Stats();
     stats.showPanel(0);
     document.getElementById("stats").appendChild(stats.domElement);
-    videoSource = e.detail.source;
+
+    document.body.appendChild(e.detail.source);
+
+    document.body.appendChild(overlayCanvas);
+
+    var info = document.getElementById("info");
+    info.innerText = `Detecting Code:\n${Glitter.Utils.dec2bin(code)} (${code})`;
+    info.style.zIndex = "1";
+
+    resize();
 });
 
 window.addEventListener("onGlitterTagsFound", (e) => {
-    const videoCanvasCtx = videoCanvas.getContext("2d");
-    videoCanvasCtx.drawImage(
-        videoSource, 0, 0, width, height);
     drawQuads(e.detail.tags);
     stats.update();
 });
 
-function resize(newWidth, newHeight) {
-    width = newWidth;
-    height = newHeight;
+window.addEventListener("onGlitterCalibrate", (e) => {
+    var info = document.getElementById("info");
+    info.innerText = `Detecting Code:\n${Glitter.Utils.dec2bin(code)} (${code})\n` + e.detail.decimationFactor;
+});
 
-    if (videoCanvas && overlayCanvas) {
-        videoCanvas.width = width;
-        videoCanvas.height = height;
-
-        overlayCanvas.width = width;
-        overlayCanvas.height = height;
-    }
+function resize() {
+    glitterSource.resize(window.innerWidth, window.innerHeight);
+    glitterSource.copyDimensionsTo(overlayCanvas);
 }
 
 window.addEventListener("resize", (e) => {
-    let width = window.innerWidth;
-    let height = window.innerHeight;
-    resize(width, height);
+    resize();
 });
-
-function setVideoStyle(elem) {
-    elem.style.position = "absolute";
-    elem.style.top = 0;
-}
-
-window.onload = () => {
-    var video = document.createElement("video");
-    video.setAttribute("autoplay", "");
-    video.setAttribute("muted", "");
-    video.setAttribute("playsinline", "");
-
-    videoCanvas = document.createElement("canvas");
-    setVideoStyle(videoCanvas);
-    videoCanvas.id = "video-canvas";
-    videoCanvas.width = width;
-    videoCanvas.height = height;
-    videoCanvas.style.zIndex = 0;
-    document.body.appendChild(videoCanvas);
-
-    overlayCanvas = document.createElement("canvas");
-    setVideoStyle(overlayCanvas);
-    overlayCanvas.id = "overlay";
-    overlayCanvas.width = width;
-    overlayCanvas.height = height;
-    overlayCanvas.style.zIndex = 1;
-    document.body.appendChild(overlayCanvas);
-
-    glitterDetector = new Glitter.GlitterDetector(code, targetFps, width, height, video);
-    glitterDetector.setOptions({
-        // printPerformance: true,
-    });
-    glitterDetector.start();
-}
