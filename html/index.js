@@ -1,4 +1,4 @@
-var code = 0xaf;
+var codes = [0xaf, 123];
 var targetFps = 30;
 
 var stats = null;
@@ -14,28 +14,28 @@ overlayCanvas.style.left = "0px";
 overlayCanvas.width = glitterSource.options.width;
 overlayCanvas.height = glitterSource.options.height;
 
-var glitterDetector = new Glitter.GlitterDetector(code, targetFps, glitterSource);
+var glitterDetector = new Glitter.GlitterDetector(codes, targetFps, glitterSource);
 glitterDetector.setOptions({
-    printPerformance: true,
+    // printPerformance: true,
 });
 glitterDetector.init();
 
-function drawQuad(quad) {
+function drawTag(tag) {
     var overlayCtx = overlayCanvas.getContext("2d");
 
     overlayCtx.beginPath();
         overlayCtx.lineWidth = 5;
         overlayCtx.strokeStyle = "blue";
-        overlayCtx.moveTo(quad.corners[0].x, quad.corners[0].y);
-        overlayCtx.lineTo(quad.corners[1].x, quad.corners[1].y);
-        overlayCtx.lineTo(quad.corners[2].x, quad.corners[2].y);
-        overlayCtx.lineTo(quad.corners[3].x, quad.corners[3].y);
-        overlayCtx.lineTo(quad.corners[0].x, quad.corners[0].y);
+        overlayCtx.moveTo(tag.corners[0].x, tag.corners[0].y);
+        overlayCtx.lineTo(tag.corners[1].x, tag.corners[1].y);
+        overlayCtx.lineTo(tag.corners[2].x, tag.corners[2].y);
+        overlayCtx.lineTo(tag.corners[3].x, tag.corners[3].y);
+        overlayCtx.lineTo(tag.corners[0].x, tag.corners[0].y);
 
         overlayCtx.font = "bold 20px Arial";
         overlayCtx.textAlign = "center";
-        overlayCtx.fillStyle = "blue";
-        overlayCtx.fillText(Glitter.Utils.dec2bin(code), quad.center.x, quad.center.y);
+        overlayCtx.fillStyle = "red";
+        overlayCtx.fillText(Glitter.Utils.dec2bin(tag.code), tag.center.x, tag.center.y);
     overlayCtx.stroke();
 
     const log = `${width},${height},${window.orientation},${quad.corners[0].x},${quad.corners[0].y},${quad.corners[1].x},${quad.corners[1].y},${quad.corners[2].x},${quad.corners[2].y},${quad.corners[3].x},${quad.corners[3].y},${glitterDetector.imu.deviceOrientation.alpha},${glitterDetector.imu.deviceOrientation.beta},${glitterDetector.imu.deviceOrientation.gamma}`;
@@ -48,12 +48,22 @@ function printLog() {
     }
 }
 
-function drawQuads(quads) {
+function drawTags(tags) {
     var overlayCtx = overlayCanvas.getContext("2d");
     overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
 
-    for (var i = 0; i < quads.length; i++) {
-        drawQuad(quads[i]);
+    for (var i = 0; i < tags.length; i++) {
+        drawTag(tags[i]);
+    }
+}
+
+function updateInfo() {
+    var info = document.getElementById("info");
+    info.style.zIndex = "1";
+    info.innerText = "Detecting Codes:\n";
+    for(var i = 0; i < this.codes.length; i++) {
+        var code = this.codes[i];
+        info.innerText += `${Glitter.Utils.dec2bin(code)} (${code})\n`;
     }
 }
 
@@ -66,21 +76,19 @@ window.addEventListener("onGlitterInit", (e) => {
 
     document.body.appendChild(overlayCanvas);
 
-    var info = document.getElementById("info");
-    info.innerText = `Detecting Code:\n${Glitter.Utils.dec2bin(code)} (${code})`;
-    info.style.zIndex = "1";
+    updateInfo();
 
     resize();
 });
 
 window.addEventListener("onGlitterTagsFound", (e) => {
-    drawQuads(e.detail.tags);
+    drawTags(e.detail.tags);
     stats.update();
 });
 
 window.addEventListener("onGlitterCalibrate", (e) => {
-    var info = document.getElementById("info");
-    info.innerText = `Detecting Code:\n${Glitter.Utils.dec2bin(code)} (${code})\n` + e.detail.decimationFactor;
+    updateInfo();
+    info.innerText += e.detail.decimationFactor;
 });
 
 function resize() {
