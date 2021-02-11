@@ -1,4 +1,4 @@
-var codes = [0xaf, 123];
+var codes = [0b10101010, 0b10011010, 0b10100011];
 var targetFps = 30;
 
 var stats = null;
@@ -73,11 +73,9 @@ window.addEventListener("onGlitterInit", (e) => {
     document.getElementById("stats").appendChild(stats.domElement);
 
     document.body.appendChild(e.detail.source);
-
     document.body.appendChild(overlayCanvas);
 
     updateInfo();
-
     resize();
 });
 
