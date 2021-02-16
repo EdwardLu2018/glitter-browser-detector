@@ -1,14 +1,14 @@
 
 import {Timer} from "./timer";
 import {Utils} from "./utils/utils";
-import {DeviceIMU} from "./imu";
+// import {DeviceIMU} from "./imu";
 import {Preprocessor} from "./preprocessor";
-import {GlitterModule} from "./glitter-module";
+import Worker from "./glitter.worker";
 
 export class GlitterDetector {
     constructor(codes, targetFps, source, options) {
         this.codes = codes;
-        this.targetFps = targetFps; // FPS/Hz
+        this.targetFps = targetFps; // FPS
         this.fpsInterval = 1000 / this.targetFps; // ms
 
         this.source = source;
@@ -27,21 +27,15 @@ export class GlitterDetector {
             imageDecimationDelta: 0.2,
             rangeThreshold: 45,
             quadSigma: 1.0,
-            refineEdges: 1,
+            refineEdges: true,
             minWhiteBlackDiff: 50,
         }
         this.setOptions(options);
 
-        this.imu = new DeviceIMU();
+        // this.imu = new DeviceIMU();
         this.preprocessor = new Preprocessor(this.sourceWidth, this.sourceHeight);
         this.preprocessor.setKernelSigma(this.options.quadSigma);
-    }
-
-    setOptions(options) {
-        if (options) {
-            this.options = Object.assign(this.options, options);
-            this.preprocessor.setKernelSigma(this.options.quadSigma);
-        }
+        this.worker = new Worker();
     }
 
     init() {
@@ -63,21 +57,51 @@ export class GlitterDetector {
             _this.timer.run();
         }
 
-        this.glitterModule = new GlitterModule(this.codes, this.sourceWidth, this.sourceHeight, this.options, startTick);
-        this.imu.init();
+        this.worker.postMessage({
+            type: "init",
+            codes: this.codes,
+            width: this.sourceWidth,
+            height: this.sourceHeight,
+            options: this.options
+        });
 
-        const initEvent = new CustomEvent("onGlitterInit", {detail: {source: source}});
-        window.dispatchEvent(initEvent);
+        this.worker.onmessage = (e) => {
+            const msg = e.data
+            switch (msg.type) {
+                case "loaded": {
+                    // this.imu.init();
+                    startTick();
+                    const initEvent = new CustomEvent("onGlitterInit", {detail: {source: source}});
+                    window.dispatchEvent(initEvent);
+                    break;
+                }
+                case "result": {
+                    const tagEvent = new CustomEvent("onGlitterTagsFound", {detail: {tags: msg.tags}});
+                    window.dispatchEvent(tagEvent);
+                    break;
+                }
+            }
+        }
     }
 
     decimate(width, height) {
         this.preprocessor.resize(width, height);
-        this.glitterModule.resize(width, height);
-        this.glitterModule.setQuadDecimate(this.imageDecimate);
+        // this.glitterModule.resize(width, height);
+        // this.glitterModule.setQuadDecimate(this.imageDecimate);
+    }
+
+    setOptions(options) {
+        if (options) {
+            this.options = Object.assign(this.options, options);
+            this.preprocessor.setKernelSigma(this.options.quadSigma);
+        }
     }
 
     addCode(code) {
-        return this.glitterModule.addCode(code);
+        this.worker.postMessage({
+            type: "add code",
+            code: code
+        });
     }
 
     tick() {
@@ -86,35 +110,36 @@ export class GlitterDetector {
         this.prev = start;
 
         this.imageData = this.preprocessor.getPixels();
-        this.glitterModule.saveGrayscale(this.imageData);
-
-        const mid = Date.now();
-
-        const tags = this.glitterModule.detect_tags();
+        this.worker.postMessage({
+            type: "process",
+            imagedata: this.imageData
+        });
 
         const end = Date.now();
 
         if (this.options.printPerformance) {
-            console.log("[performance]", "Get Pixels:", mid-start, "Detect:", end-mid, "Total:", end-start);
+            console.log("[performance]", "Get Pixels:", end-start);
         }
 
         if (this.options.decimateImage && end-start > this.fpsInterval) {
             this.numBadFrames++;
             if (this.numBadFrames > this.targetFps/2 &&
                 this.imageDecimate < this.options.maxImageDecimationFactor) {
-                this.imageDecimate += this.options.imageDecimationDelta;
-                this.imageDecimate = Utils.round3(this.imageDecimate);
-                this.decimate(this.sourceWidth/this.imageDecimate, this.sourceHeight/this.imageDecimate);
                 this.numBadFrames = 0;
 
-                const calibrateEvent = new CustomEvent("onGlitterCalibrate", {detail: {decimationFactor: this.imageDecimate}});
+                this.imageDecimate += this.options.imageDecimationDelta;
+                this.imageDecimate = Utils.round3(this.imageDecimate);
+                this.decimate(
+                        this.sourceWidth/this.imageDecimate,
+                        this.sourceHeight/this.imageDecimate
+                    );
+
+                const calibrateEvent = new CustomEvent(
+                        "onGlitterCalibrate",
+                        {detail: {decimationFactor: this.imageDecimate}}
+                    );
                 window.dispatchEvent(calibrateEvent);
             }
-        }
-
-        if (tags) {
-            const tagEvent = new CustomEvent("onGlitterTagsFound", {detail: {tags: tags}});
-            window.dispatchEvent(tagEvent);
         }
     }
 }

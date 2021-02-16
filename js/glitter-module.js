@@ -1,3 +1,4 @@
+import GlitterWASM from "../build/glitter_wasm";
 export class GlitterModule {
     constructor(codes, width, height, options, callback) {
         this.width = width;
@@ -42,7 +43,7 @@ export class GlitterModule {
         this.tags = [];
 
         let _this = this;
-        window.addEventListener("onGlitterTagFound", (e) => {
+        self.addEventListener("onGlitterTagFound", (e) => {
             _this.tags.push(e.detail.tag);
         });
     }
@@ -61,8 +62,9 @@ export class GlitterModule {
     addCode(code) {
         if (0x00 < code < 0xff) {
             this._add_code(code);
+            return this.codes.push(code);
         }
-        return this.codes.push(code);
+        return -1;
     }
 
     setDetectorOptions(options) {
@@ -78,7 +80,7 @@ export class GlitterModule {
         return this._save_grayscale(this.imagePtr, this.grayPtr, this.width, this.height);
     }
 
-    detect_tags() {
+    detectTags() {
         this.tags = []; // reset found tags
         if (!this.ready) return this.tags;
 
