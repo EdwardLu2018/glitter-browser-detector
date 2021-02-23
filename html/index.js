@@ -5,6 +5,10 @@ var stats = null;
 var logs = [];
 
 var glitterSource = new Glitter.GlitterSource();
+// glitterSource.setOptions({
+//     width: 1280,
+//     height: 720,
+// });
 
 var overlayCanvas = document.createElement("canvas");
 overlayCanvas.id = "overlay";
@@ -17,7 +21,6 @@ overlayCanvas.height = glitterSource.options.height;
 var glitterDetector = new Glitter.GlitterDetector(codes, targetFps, glitterSource);
 glitterDetector.setOptions({
     // printPerformance: true,
-    rangeThreshold: 0,
 });
 glitterDetector.init();
 
@@ -32,12 +35,12 @@ function drawTag(tag) {
         overlayCtx.lineTo(tag.corners[2].x, tag.corners[2].y);
         overlayCtx.lineTo(tag.corners[3].x, tag.corners[3].y);
         overlayCtx.lineTo(tag.corners[0].x, tag.corners[0].y);
-
-        overlayCtx.font = "bold 20px Arial";
-        overlayCtx.textAlign = "center";
-        overlayCtx.fillStyle = "red";
-        overlayCtx.fillText(tag.code, tag.center.x, tag.center.y);
     overlayCtx.stroke();
+
+    overlayCtx.font = "bold 20px Arial";
+    overlayCtx.textAlign = "center";
+    overlayCtx.fillStyle = "red";
+    overlayCtx.fillText(tag.code, tag.center.x, tag.center.y);
 
     const log = `${width},${height},${window.orientation},${quad.corners[0].x},${quad.corners[0].y},${quad.corners[1].x},${quad.corners[1].y},${quad.corners[2].x},${quad.corners[2].y},${quad.corners[3].x},${quad.corners[3].y},${glitterDetector.imu.deviceOrientation.alpha},${glitterDetector.imu.deviceOrientation.beta},${glitterDetector.imu.deviceOrientation.gamma}`;
     logs.push(log);
