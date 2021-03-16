@@ -16,28 +16,20 @@
 #include "common/pjpeg.h"
 #include "common/zarray.h"
 
-#include "lightanchor.h"
-#include "lightanchor_detector.h"
-
-apriltag_family_t *lf = NULL;
+apriltag_family_t *tf = NULL;
 apriltag_detector_t *td = NULL;
-lightanchor_detector_t *ld = NULL;
 
 EMSCRIPTEN_KEEPALIVE
 int init() {
-    lf = lightanchor_family_create();
-    if (lf == NULL)
+    tf = tag36h11_create();
+    if (tf == NULL)
         return -1;
 
     td = apriltag_detector_create();
     if (td == NULL)
         return -1;
 
-    apriltag_detector_add_family(td, lf);
-
-    ld = lightanchor_detector_create();
-    if (ld == NULL)
-        return -1;
+    apriltag_detector_add_family(td, tf);
 
     td->nthreads = 1;
     td->quad_decimate = 1.0;
@@ -57,12 +49,11 @@ int init() {
 
 EMSCRIPTEN_KEEPALIVE
 int add_code(char code) {
-    return lightanchor_detector_add_code(ld, code);
+    return 0;
 }
 
 EMSCRIPTEN_KEEPALIVE
 int set_detector_options(int range_thres, int refine_edges, int min_white_black_diff) {
-    ld->range_thres = range_thres;
     td->refine_edges = refine_edges;
     td->qtp.min_white_black_diff = min_white_black_diff;
 
@@ -93,32 +84,13 @@ int detect_tags(uint8_t gray[], int cols, int rows) {
         .buf = gray
     };
 
-    // EM_ASM({console.time("detect_quads")});
-    zarray_t *quads = detect_quads(td, &im);
-    // EM_ASM({console.timeEnd("detect_quads")});
+    zarray_t *detections = apriltag_detector_detect(td, &im);
 
-    // EM_ASM({console.time("decode_tags")});
-    zarray_t *lightanchors = decode_tags(td, ld, quads, &im);
-    // EM_ASM({console.timeEnd("decode_tags")});
-
-    int sz = zarray_size(lightanchors);
+    int sz = zarray_size(detections);
 
     for (int i = 0; i < sz; i++) {
-        lightanchor_t *la;
-        zarray_get(lightanchors, i, &la);
-
-        // adjust centers of pixels so that they correspond to the
-        // original full-resolution image.
-        if (td->quad_decimate > 1)
-        {
-            for (int j = 0; j < 4; j++)
-            {
-                la->p[j][0] = (la->p[j][0] - 0.5) * td->quad_decimate + 0.5;
-                la->p[j][1] = (la->p[j][1] - 0.5) * td->quad_decimate + 0.5;
-            }
-            la->c[0] = (la->c[0] - 0.5) * td->quad_decimate + 0.5;
-            la->c[1] = (la->c[1] - 0.5) * td->quad_decimate + 0.5;
-        }
+        apriltag_detection_t *det;
+        zarray_get(detections, i, &det);
 
         EM_ASM({
             const tag = {};
@@ -160,20 +132,20 @@ int detect_tags(uint8_t gray[], int cols, int rows) {
                 scope = window;
             scope.dispatchEvent(tagEvent);
         },
-            la->match_code,
-            la->p[0][0],
-            la->p[0][1],
-            la->p[1][0],
-            la->p[1][1],
-            la->p[2][0],
-            la->p[2][1],
-            la->p[3][0],
-            la->p[3][1],
-            la->c[0],
-            la->c[1]
+            det->id,
+            det->p[0][0],
+            det->p[0][1],
+            det->p[1][0],
+            det->p[1][1],
+            det->p[2][0],
+            det->p[2][1],
+            det->p[3][0],
+            det->p[3][1],
+            det->c[0],
+            det->c[1]
         );
     }
-    lightanchors_destroy(lightanchors);
+    apriltag_detections_destroy(detections);
 
     return sz;
 }
