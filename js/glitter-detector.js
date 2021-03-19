@@ -53,11 +53,6 @@ export class GlitterDetector {
 
     onInit(source) {
         let _this = this;
-        function startTick() {
-            _this.prev = Date.now();
-            _this.timer = new Timer(_this.tick.bind(_this), _this.fpsInterval);
-            _this.timer.run();
-        }
 
         this.worker.postMessage({
             type: "init",
@@ -73,7 +68,22 @@ export class GlitterDetector {
             switch (msg.type) {
                 case "loaded": {
                     // this.imu.init();
-                    startTick();
+                    const start = Date.now();
+                    // console.log(start - this.prev, this.timer.getError());
+                    this.prev = start;
+
+                    this.imageData = this.preprocessor.getPixels();
+                    this.worker.postMessage({
+                        type: "process",
+                        imagedata: this.imageData
+                    });
+
+                    const end = Date.now();
+
+                    if (this.options.printPerformance) {
+                        console.log("[performance]", "Get Pixels:", end-start);
+                    }
+
                     const initEvent = new CustomEvent(
                         "onGlitterInit",
                         {detail: {source: source}}
@@ -87,6 +97,17 @@ export class GlitterDetector {
                         {detail: {tags: msg.tags}}
                     );
                     window.dispatchEvent(tagEvent);
+                    this.imageData = this.preprocessor.getPixels();
+                    this.worker.postMessage({
+                        type: "process",
+                        imagedata: this.imageData
+                    });
+
+                    const end = Date.now();
+
+                    if (this.options.printPerformance) {
+                        console.log("[performance]", "Get Pixels:", end-start);
+                    }
                     break;
                 }
                 case "resize": {
@@ -130,37 +151,5 @@ export class GlitterDetector {
             type: "add code",
             code: code
         });
-    }
-
-    tick() {
-        const start = Date.now();
-        // console.log(start - this.prev, this.timer.getError());
-        this.prev = start;
-
-        this.imageData = this.preprocessor.getPixels();
-        this.worker.postMessage({
-            type: "process",
-            imagedata: this.imageData
-        });
-
-        const end = Date.now();
-
-        if (this.options.printPerformance) {
-            console.log("[performance]", "Get Pixels:", end-start);
-        }
-
-        if (this.options.decimateImage) {
-            if (end-start > this.fpsInterval) {
-                this.numBadFrames++;
-                if (this.numBadFrames > BAD_FRAMES_BEFORE_DECIMATE &&
-                    this.imageDecimate < this.options.maxImageDecimationFactor) {
-                    this.numBadFrames = 0;
-                    this.decimate();
-                }
-            }
-            else {
-                this.numBadFrames = 0;
-            }
-        }
     }
 }

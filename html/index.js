@@ -7,8 +7,8 @@ var glitterSource = new Glitter.GlitterSource();
 glitterSource.setOptions({
     // width: 4096,
     // height: 2160,
-    // width: 1920,
-    // height: 1080,
+    width: 1920,
+    height: 1080,
     // width: 1280,
     // height: 720,
 });
@@ -56,16 +56,6 @@ function drawTags(tags) {
     }
 }
 
-function updateInfo() {
-    var info = document.getElementById("info");
-    info.style.zIndex = "1";
-    info.innerText = "Detecting Codes:\n";
-    for(var i = 0; i < this.codes.length; i++) {
-        var code = this.codes[i];
-        info.innerText += `${Glitter.Utils.dec2bin(code)} (${code})\n`;
-    }
-}
-
 window.addEventListener("onGlitterInit", (e) => {
     stats = new Stats();
     stats.showPanel(0);
@@ -75,7 +65,6 @@ window.addEventListener("onGlitterInit", (e) => {
     document.body.appendChild(overlayCanvas);
     // document.body.appendChild(glitterDetector.preprocessor.canvas);
 
-    updateInfo();
     resize();
 });
 
