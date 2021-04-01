@@ -23,7 +23,7 @@ onmessage = (e) => {
     }
 }
 
-var BAD_FRAMES_BEFORE_DECIMATE = 20;
+var BAD_FRAMES_BEFORE_DECIMATE = 30;
 
 var targetFps = null, fpsInterval = null;
 var glitterModule = null;
@@ -65,13 +65,10 @@ function process() {
 
         glitterModule.saveGrayscale(next);
         const tags = glitterModule.detectTags();
-        postMessage({type: "result", tags: tags});
 
         const end = Date.now();
 
-        if (glitterModule.options.printPerformance) {
-            console.log("[performance]", "Detect:", end-start);
-        }
+        postMessage({type: "result", tags: tags, performance: end-start});
 
         if (glitterModule.options.decimateImage) {
             if (end-start > fpsInterval) {

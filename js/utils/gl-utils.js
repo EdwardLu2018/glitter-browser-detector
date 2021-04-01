@@ -1,16 +1,17 @@
 export class GLUtils {
     static createGL(canvas, width, height) {
-        const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+        const gl = canvas.getContext("webgl") ||
+                   canvas.getContext("experimental-webgl");
         gl.viewport(0, 0, width, height);
         gl.clearColor(0.1, 0.1, 0.1, 1.0);
         gl.clear(gl.COLOR_BUFFER_BIT);
         const vertices = new Float32Array([
-            -1, -1,
-            -1,  1,
-             1,  1,
-            -1, -1,
-             1,  1,
-             1, -1,
+            -1.0, -1.0,
+            -1.0,  1.0,
+             1.0,  1.0,
+            -1.0, -1.0,
+             1.0,  1.0,
+             1.0, -1.0,
         ]);
         const buffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
@@ -80,9 +81,23 @@ export class GLUtils {
     }
 
     static updateElem(gl, elem) {
-        gl.texSubImage2D(
-            gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, elem);
+        // gl.texSubImage2D(
+        //     gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, elem);
+        gl.texImage2D(
+            gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, elem);
     }
+
+    // static bindElem(gl, elem) {
+    //     gl.texImage2D(
+    //         gl.TEXTURE_2D, 0, gl.LUMINANCE, gl.LUMINANCE, gl.UNSIGNED_BYTE, elem);
+    // }
+
+    // static updateElem(gl, elem) {
+    //     // gl.texSubImage2D(
+    //     //     gl.TEXTURE_2D, 0, 0, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, elem);
+    //     gl.texImage2D(
+    //         gl.TEXTURE_2D, 0, gl.LUMINANCE, gl.LUMINANCE, gl.UNSIGNED_BYTE, elem);
+    // }
 
     static createFramebuffer(gl, texture) {
         const fbo = gl.createFramebuffer();

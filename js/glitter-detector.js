@@ -5,7 +5,7 @@ import {Utils} from "./utils/utils";
 import {Preprocessor} from "./preprocessor";
 import Worker from "./glitter.worker";
 
-var BAD_FRAMES_BEFORE_DECIMATE = 20;
+var BAD_FRAMES_BEFORE_DECIMATE = 30;
 
 export class GlitterDetector {
     constructor(codes, targetFps, source, options) {
@@ -17,7 +17,6 @@ export class GlitterDetector {
         this.sourceWidth = this.source.options.width;
         this.sourceHeight = this.source.options.height;
 
-        this.imageData = null;
         this.imageDecimate = 1.0;
 
         this.numBadFrames = 0;
@@ -54,7 +53,7 @@ export class GlitterDetector {
     onInit(source) {
         let _this = this;
         function startTick() {
-            _this.prev = Date.now();
+            _this.prev = performance.now();
             _this.timer = new Timer(_this.tick.bind(_this), _this.fpsInterval);
             _this.timer.run();
         }
@@ -87,6 +86,10 @@ export class GlitterDetector {
                         {detail: {tags: msg.tags}}
                     );
                     window.dispatchEvent(tagEvent);
+
+                    if (this.options.printPerformance) {
+                        console.log("[performance]", "Detect:", msg.performance);
+                    }
                     break;
                 }
                 case "resize": {
@@ -132,22 +135,32 @@ export class GlitterDetector {
         });
     }
 
-    tick() {
-        const start = Date.now();
-        // console.log(start - this.prev, this.timer.getError());
+    tick(time) {
+        const start = performance.now();
+        // console.log(start - this.prev, time);
         this.prev = start;
 
-        this.imageData = this.preprocessor.getPixels();
+        const imageData = this.preprocessor.getPixels();
+
+        const mid = performance.now();
+
         this.worker.postMessage({
             type: "process",
-            imagedata: this.imageData
-        });
+            imagedata: imageData
+        }, [imageData.buffer]);
 
-        const end = Date.now();
+        const end = performance.now();
 
         if (this.options.printPerformance) {
-            console.log("[performance]", "Get Pixels:", end-start);
+            console.log("[performance]", "getPixels:", mid-start);
+            // console.log("[performance]", "postMessage:", end-mid);
         }
+
+        const tagEvent = new CustomEvent(
+            "onGlitterTick",
+            {detail: {}}
+        );
+        window.dispatchEvent(tagEvent);
 
         if (this.options.decimateImage) {
             if (end-start > this.fpsInterval) {

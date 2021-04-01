@@ -36,15 +36,24 @@ export class Preprocessor {
         this.texture = GLUtils.createTexture(this.gl, this.width, this.height);
         GLUtils.bindTexture(this.gl, this.texture);
 
-        this.imageData = new Uint8Array(this.width * this.height * 4);
+        // this.imageData = new Uint8Array(this.width * this.height * 4);
     }
 
     getPixels() {
         if (this.source) {
-            GLUtils.bindElem(this.gl, this.source);
+            // console.time("bind");
+            GLUtils.updateElem(this.gl, this.source);
+            // console.timeEnd("bind");
+
+            // console.time("draw");
             GLUtils.draw(this.gl);
-            GLUtils.readPixels(this.gl, this.width, this.height, this.imageData);
-            return this.imageData;
+            // console.timeEnd("draw");
+
+            // console.time("read");
+            const imageData = new Uint8Array(this.width * this.height * 4);
+            GLUtils.readPixels(this.gl, this.width, this.height, imageData);
+            // console.timeEnd("read");
+            return imageData;
         }
         else {
             return null;
@@ -79,7 +88,7 @@ export class Preprocessor {
         GLUtils.resize(this.gl);
         this.gl.uniform2f(this.textureSizeLocation, this.width, this.height);
 
-        this.imageData = new Uint8Array(this.width * this.height * 4);
+        // this.imageData = new Uint8Array(this.width * this.height * 4);
     }
 
     attachElem(source) {
