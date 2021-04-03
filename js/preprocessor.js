@@ -33,14 +33,17 @@ export class Preprocessor {
 
         this.kernelLocation = this.gl.getUniformLocation(program, "u_kernel[0]");
 
-        this.texture = GLUtils.createTexture(this.gl, this.width, this.height);
-        GLUtils.bindTexture(this.gl, this.texture);
-
-        // this.imageData = new Uint8Array(this.width * this.height * 4);
+        const texture = GLUtils.createTexture(this.gl, this.width, this.height);
+        GLUtils.bindTexture(this.gl, texture);
     }
 
-    getPixels() {
+    draw() {
         if (this.source) {
+            GLUtils.unbindTexture(this.gl);
+
+            const texture = GLUtils.createTexture(this.gl, this.width, this.height);
+            GLUtils.bindTexture(this.gl, texture);
+
             // console.time("bind");
             GLUtils.updateElem(this.gl, this.source);
             // console.timeEnd("bind");
@@ -49,32 +52,48 @@ export class Preprocessor {
             GLUtils.draw(this.gl);
             // console.timeEnd("draw");
 
-            // console.time("read");
-            const imageData = new Uint8Array(this.width * this.height * 4);
-            GLUtils.readPixels(this.gl, this.width, this.height, imageData);
-            // console.timeEnd("read");
-            return imageData;
+            return texture;
         }
         else {
             return null;
         }
     }
 
-    setKernelSigma(sigma) {
-        // compute new 5x5 gaussian kernel
-        var i = 0;
-        for (var r = -2; r <= -2; r++) {
-            for (var c = -2; c <= -2; c++) {
-                var val = Math.exp(-(r*r + c*c) / (2*sigma*sigma));
-                this.kernel[i] = val;
-                i++;
-            }
-        }
+    getPixels(texture) {
+        // console.time("read");
+        GLUtils.bindTexture(this.gl, texture);
+        const imageData = new Uint8Array(this.width * this.height * 4);
+        GLUtils.readPixels(this.gl, this.width, this.height, imageData);
+        GLUtils.destroyTexture(this.gl, texture);
+        // console.timeEnd("read");
+        return imageData;
+    }
 
-        var sum = this.kernel.reduce((a, b) => a + b, 0);
-        this.kernel = this.kernel.map(function(x) {
-            return x / sum;
-        });
+    setKernelSigma(sigma) {
+        if (sigma > 0.0) {
+            // compute new 5x5 gaussian kernel
+            var i = 0;
+            for (var r = -2; r <= -2; r++) {
+                for (var c = -2; c <= -2; c++) {
+                    var val = Math.exp(-(r*r + c*c) / (2*sigma*sigma));
+                    this.kernel[i] = val;
+                    i++;
+                }
+            }
+            var sum = this.kernel.reduce((a, b) => a + b, 0);
+            this.kernel = this.kernel.map(function(x) {
+                return x / sum;
+            });
+        }
+        else {
+            this.kernel = [
+                0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0,
+                0, 0, 1, 0, 0,
+                0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0,
+            ];
+        }
 
         this.gl.uniform1fv(this.kernelLocation, this.kernel);
     }
@@ -87,8 +106,6 @@ export class Preprocessor {
         this.canvas.height = this.height;
         GLUtils.resize(this.gl);
         this.gl.uniform2f(this.textureSizeLocation, this.width, this.height);
-
-        // this.imageData = new Uint8Array(this.width * this.height * 4);
     }
 
     attachElem(source) {

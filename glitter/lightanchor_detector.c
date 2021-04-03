@@ -23,8 +23,9 @@
 
 #define TTL_FRAMES          8
 
-#define THRES_DIST_SHAPE    50.0F
-#define THRES_DIST_CENTER   10.0F
+#define THRES_DIST_SHAPE    20.0F
+#define THRES_DIST_CENTER   5.0F
+
 #define THRES_SHAPE_TTL     15.0F
 
 apriltag_family_t *lightanchor_family_create()

@@ -60,7 +60,7 @@ function resize(width, height, decimate) {
 }
 
 function process() {
-    if (glitterModule) {
+    if (glitterModule && next) {
         const start = Date.now();
 
         glitterModule.saveGrayscale(next);
