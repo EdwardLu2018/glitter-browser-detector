@@ -282,13 +282,13 @@ static zarray_t *update_candidates(lightanchor_detector_t *ld,
                 // shape is represented as the average distance from each corner to the center
                 // not scale invariant!
                 double dist_shape_new = (g2d_distance(new_tag->p[0], new_tag->c) +
-                                            g2d_distance(new_tag->p[1], new_tag->c) +
-                                            g2d_distance(new_tag->p[2], new_tag->c) +
-                                            g2d_distance(new_tag->p[3], new_tag->c)) / 4;
+                                         g2d_distance(new_tag->p[1], new_tag->c) +
+                                         g2d_distance(new_tag->p[2], new_tag->c) +
+                                         g2d_distance(new_tag->p[3], new_tag->c)) / 4;
                 double dist_shape_old = (g2d_distance(old_tag->p[0], old_tag->c) +
-                                            g2d_distance(old_tag->p[1], old_tag->c) +
-                                            g2d_distance(old_tag->p[2], old_tag->c) +
-                                            g2d_distance(old_tag->p[3], old_tag->c)) / 4;
+                                         g2d_distance(old_tag->p[1], old_tag->c) +
+                                         g2d_distance(old_tag->p[2], old_tag->c) +
+                                         g2d_distance(old_tag->p[3], old_tag->c)) / 4;
                 dist_shape = fabs(dist_shape_new - dist_shape_old);
 
                 if ((dist < min_dist) && (dist_shape < min_dist_shape) &&
