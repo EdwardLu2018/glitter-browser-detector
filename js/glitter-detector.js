@@ -3,7 +3,7 @@ import {Timer} from "./timer";
 import {Utils} from "./utils/utils";
 // import {DeviceIMU} from "./imu";
 import {Preprocessor} from "./preprocessor";
-import Worker from "./glitter.worker";
+import GlitterWorker from "./glitter.worker";
 
 var BAD_FRAMES_BEFORE_DECIMATE = 20;
 
@@ -17,7 +17,6 @@ export class GlitterDetector {
         this.sourceWidth = this.source.options.width;
         this.sourceHeight = this.source.options.height;
 
-        this.imageData = null;
         this.imageDecimate = 1.0;
 
         this.numBadFrames = 0;
@@ -36,13 +35,11 @@ export class GlitterDetector {
         // this.imu = new DeviceIMU();
         this.preprocessor = new Preprocessor(this.sourceWidth, this.sourceHeight);
         this.preprocessor.setKernelSigma(this.options.quadSigma);
-        this.worker = new Worker();
     }
 
     init() {
         this.source.init()
             .then((source) => {
-                this.preprocessor.attachElem(source);
                 this.onInit(source);
             })
             .catch((err) => {
@@ -50,7 +47,7 @@ export class GlitterDetector {
             });
     }
 
-    onInit(source) {
+    async onInit(source) {
         let _this = this;
         function startTick() {
             _this.prev = Date.now();
@@ -58,42 +55,16 @@ export class GlitterDetector {
             _this.timer.run();
         }
 
-        this.worker.postMessage({
-            type: "init",
-            codes: this.codes,
-            width: this.sourceWidth,
-            height: this.sourceHeight,
-            targetFps: this.targetFps,
-            options: this.options
-        });
+        this.preprocessor.attachElem(source);
+        this.worker = await new GlitterWorker();
+        await this.worker.init(this.codes, this.sourceWidth, this.sourceHeight, this.options);
 
-        this.worker.onmessage = (e) => {
-            const msg = e.data
-            switch (msg.type) {
-                case "loaded": {
-                    // this.imu.init();
-                    startTick();
-                    const initEvent = new CustomEvent(
-                        "onGlitterInit",
-                        {detail: {source: source}}
-                    );
-                    window.dispatchEvent(initEvent);
-                    break;
-                }
-                case "result": {
-                    const tagEvent = new CustomEvent(
-                        "onGlitterTagsFound",
-                        {detail: {tags: msg.tags}}
-                    );
-                    window.dispatchEvent(tagEvent);
-                    break;
-                }
-                case "resize": {
-                    this.decimate();
-                    break;
-                }
-            }
-        }
+        startTick();
+        const initEvent = new CustomEvent(
+            "onGlitterInit",
+            {detail: {source: source}}
+        );
+        window.dispatchEvent(initEvent);
     }
 
     decimate() {
@@ -103,12 +74,7 @@ export class GlitterDetector {
         var height = this.sourceHeight / this.imageDecimate;
 
         this.preprocessor.resize(width, height);
-        this.worker.postMessage({
-            type: "resize",
-            width: width,
-            height: height,
-            decimate: this.imageDecimate,
-        });
+        this.worker.resize(width, height, this.imageDecimate);
 
         const calibrateEvent = new CustomEvent(
                 "onGlitterCalibrate",
@@ -125,22 +91,24 @@ export class GlitterDetector {
     }
 
     addCode(code) {
-        this.worker.postMessage({
-            type: "add code",
-            code: code
-        });
+        this.worker.addCode(code);
     }
 
-    tick() {
+    async tick() {
         const start = Date.now();
         // console.log(start - this.prev, this.timer.getError());
         this.prev = start;
 
-        this.imageData = this.preprocessor.getPixels();
-        this.worker.postMessage({
-            type: "process",
-            imagedata: this.imageData
-        });
+        const imageData = this.preprocessor.getPixels();
+
+        this.worker.process(imageData)
+            .then((tags) => {
+                const tagEvent = new CustomEvent(
+                    "onGlitterTagsFound",
+                    {detail: {tags: tags}}
+                );
+                window.dispatchEvent(tagEvent);
+            });
 
         const end = Date.now();
 

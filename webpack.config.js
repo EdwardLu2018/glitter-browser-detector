@@ -31,8 +31,8 @@ module.exports = (env, argv) => ({
       {
         test: /\worker\.js$/,
         use: {
-          loader: 'worker-loader',
-          options: { inline: 'no-fallback' }
+          loader: 'comlink-loader',
+          options: { inline: true }
         }
       },
       {
