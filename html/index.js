@@ -5,10 +5,12 @@ var stats = null;
 var logs = [];
 
 var glitterSource = new Glitter.GlitterSource();
-// glitterSource.setOptions({
-//     width: 1280,
-//     height: 720,
-// });
+glitterSource.setOptions({
+    // width: 1280,
+    // height: 720,
+    // width: 720,
+    // height: 540,
+});
 
 var overlayCanvas = document.createElement("canvas");
 overlayCanvas.id = "overlay";

@@ -19,21 +19,21 @@
 #include "lightanchor.h"
 #include "lightanchor_detector.h"
 
-apriltag_family_t *tf = NULL;
+apriltag_family_t *lf = NULL;
 apriltag_detector_t *td = NULL;
 lightanchor_detector_t *ld = NULL;
 
 EMSCRIPTEN_KEEPALIVE
 int init() {
-    tf = lightanchor_family_create();
-    if (tf == NULL)
+    lf = lightanchor_family_create();
+    if (lf == NULL)
         return -1;
 
     td = apriltag_detector_create();
     if (td == NULL)
         return -1;
 
-    apriltag_detector_add_family(td, tf);
+    apriltag_detector_add_family(td, lf);
 
     ld = lightanchor_detector_create();
     if (ld == NULL)
@@ -62,9 +62,6 @@ int add_code(char code) {
 
 EMSCRIPTEN_KEEPALIVE
 int set_detector_options(int range_thres, int refine_edges, int min_white_black_diff) {
-    if (td == NULL)
-        return -1;
-
     ld->range_thres = range_thres;
     td->refine_edges = refine_edges;
     td->qtp.min_white_black_diff = min_white_black_diff;
@@ -74,11 +71,7 @@ int set_detector_options(int range_thres, int refine_edges, int min_white_black_
 
 EMSCRIPTEN_KEEPALIVE
 int set_quad_decimate(float quad_decimate) {
-    if (td == NULL)
-        return -1;
-
     td->quad_decimate = quad_decimate;
-
     return 0;
 }
 
@@ -100,14 +93,19 @@ int detect_tags(uint8_t gray[], int cols, int rows) {
         .buf = gray
     };
 
+    // EM_ASM({console.time("detect_quads")});
     zarray_t *quads = detect_quads(td, &im);
+    // EM_ASM({console.timeEnd("detect_quads")});
+
+    // EM_ASM({console.time("decode_tags")});
     zarray_t *lightanchors = decode_tags(td, ld, quads, &im);
+    // EM_ASM({console.timeEnd("decode_tags")});
 
     int sz = zarray_size(lightanchors);
 
     for (int i = 0; i < sz; i++) {
-        struct lightanchor *la;
-        zarray_get_volatile(lightanchors, i, &la);
+        lightanchor_t *la;
+        zarray_get(lightanchors, i, &la);
 
         // adjust centers of pixels so that they correspond to the
         // original full-resolution image.
