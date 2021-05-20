@@ -1,0 +1,1 @@
+screen_width,screen_height,screen_orientation,corner0.x,corner0.y,corner1.x,corner1.y,corner2.x,corner2.y,corner3.x,corner3.y,alpha,beta,gamma

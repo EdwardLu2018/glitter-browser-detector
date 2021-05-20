@@ -2,6 +2,7 @@ var codes = [0b10101010, 0b10011010, 0b10100011];
 var targetFps = 30;
 
 var stats = null;
+var logs = [];
 
 var glitterSource = new Glitter.GlitterSource();
 glitterSource.setOptions({
@@ -45,6 +46,15 @@ function drawTag(tag) {
     overlayCtx.textAlign = "center";
     overlayCtx.fillStyle = "red";
     overlayCtx.fillText(tag.code, tag.center.x, tag.center.y);
+
+    const log = `${width},${height},${window.orientation},${quad.corners[0].x},${quad.corners[0].y},${quad.corners[1].x},${quad.corners[1].y},${quad.corners[2].x},${quad.corners[2].y},${quad.corners[3].x},${quad.corners[3].y},${glitterDetector.imu.deviceOrientation.alpha},${glitterDetector.imu.deviceOrientation.beta},${glitterDetector.imu.deviceOrientation.gamma}`;
+    logs.push(log);
+}
+
+function printLog() {
+    for (var i = 0; i < logs.length; i++) {
+        console.log(logs[i]);
+    }
 }
 
 function drawTags(tags) {
