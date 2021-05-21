@@ -29,7 +29,7 @@ export class GlitterDetector {
             maxImageDecimationFactor: 3,
             imageDecimationDelta: 0.2,
             rangeThreshold: 20,
-            quadSigma: 0.2,
+            quadSigma: 0.8,
             minWhiteBlackDiff: 50,
         }
         this.setOptions(options);
@@ -146,7 +146,7 @@ export class GlitterDetector {
     tick() {
         this.frames++;
         const start = Date.now();
-        // console.log(start - this.prev, this.timer.getError());
+        // console.log(start - this.prev);
         this.prev = start;
 
         this.imageData = this.preprocessor.getPixels();
