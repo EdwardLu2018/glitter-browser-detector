@@ -148,6 +148,12 @@ export class GlitterDetector {
             console.log("[performance]", "Get Pixels:", end-start);
         }
 
+        const tickEvent = new CustomEvent(
+            "onGlitterTick",
+            {detail: {}}
+        );
+        window.dispatchEvent(tickEvent);
+
         if (this.options.decimateImage) {
             if (end-start > this.fpsInterval) {
                 this.numBadFrames++;

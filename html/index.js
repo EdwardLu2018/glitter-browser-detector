@@ -2,7 +2,9 @@ var codes = [0b10101010, 0b10011010, 0b10100011];
 var targetFps = 30;
 
 var stats = null;
-var logs = [];
+var collecting = false;
+var numFrames = 1;
+var framesWithTags = 0;
 
 var glitterSource = new Glitter.GlitterSource();
 glitterSource.setOptions({
@@ -46,15 +48,6 @@ function drawTag(tag) {
     overlayCtx.textAlign = "center";
     overlayCtx.fillStyle = "red";
     overlayCtx.fillText(tag.code, tag.center.x, tag.center.y);
-
-    const log = `${width},${height},${window.orientation},${quad.corners[0].x},${quad.corners[0].y},${quad.corners[1].x},${quad.corners[1].y},${quad.corners[2].x},${quad.corners[2].y},${quad.corners[3].x},${quad.corners[3].y},${glitterDetector.imu.deviceOrientation.alpha},${glitterDetector.imu.deviceOrientation.beta},${glitterDetector.imu.deviceOrientation.gamma}`;
-    logs.push(log);
-}
-
-function printLog() {
-    for (var i = 0; i < logs.length; i++) {
-        console.log(logs[i]);
-    }
 }
 
 function drawTags(tags) {
@@ -69,11 +62,16 @@ function drawTags(tags) {
 function updateInfo() {
     var info = document.getElementById("info");
     info.style.zIndex = "1";
+    if (collecting)
+        info.style.background = "#beff33";
+    else
+        info.style.background = "aliceblue";
     info.innerText = "Detecting Codes:\n";
     for(var i = 0; i < this.codes.length; i++) {
         var code = this.codes[i];
         info.innerText += `${Glitter.Utils.dec2bin(code)} (${code})\n`;
     }
+    info.innerText += `${Glitter.Utils.round3(framesWithTags / numFrames * 100)}%`;
 }
 
 window.addEventListener("onGlitterInit", (e) => {
@@ -92,11 +90,29 @@ window.addEventListener("onGlitterInit", (e) => {
 window.addEventListener("onGlitterTagsFound", (e) => {
     drawTags(e.detail.tags);
     stats.update();
+
+    if (collecting && e.detail.tags.length > 0) {
+        framesWithTags++;
+    }
+});
+
+window.addEventListener("onGlitterTick", (e) => {
+    if (collecting) {
+        numFrames++;
+        updateInfo();
+    }
 });
 
 window.addEventListener("onGlitterCalibrate", (e) => {
     updateInfo();
     info.innerText += e.detail.decimationFactor;
+});
+
+window.addEventListener("touchend", (e) => {
+    collecting = !collecting;
+    updateInfo();
+    numFrames = 1;
+    framesWithTags = 0;
 });
 
 function resize() {
