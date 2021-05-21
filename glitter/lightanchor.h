@@ -17,8 +17,8 @@ struct lightanchor
     char valid;
     uint8_t match_code;
 
-    uint16_t code;
-    uint16_t next_code;
+    uint8_t code;
+    uint8_t next_code;
 
     int frames;
 

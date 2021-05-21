@@ -40,7 +40,7 @@ function init(msg) {
         msg.width,
         msg.height,
         msg.options,
-        onLoaded
+        msg.sendEvent ? onLoaded : null,
     );
     targetFps = msg.targetFps;
     fpsInterval = 1000 / targetFps;
@@ -65,7 +65,9 @@ function process() {
 
         glitterModule.saveGrayscale(next);
         const tags = glitterModule.detectTags();
-        postMessage({type: "result", tags: tags});
+        if (tags.length > 0) {
+            postMessage({type: "result", tags: tags});
+        }
 
         const end = Date.now();
 

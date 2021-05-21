@@ -81,6 +81,9 @@ window.addEventListener("onGlitterInit", (e) => {
 
 window.addEventListener("onGlitterTagsFound", (e) => {
     drawTags(e.detail.tags);
+});
+
+window.addEventListener("onGlitterTick", (e) => {
     stats.update();
 });
 
