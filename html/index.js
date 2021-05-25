@@ -12,8 +12,8 @@ glitterSource.setOptions({
     // height: 3024,
     // width: 1920,
     // height: 1080,
-    // width: 1280,
-    // height: 720,
+    width: 1280,
+    height: 720,
 });
 
 var overlayCanvas = document.createElement("canvas");
@@ -71,7 +71,7 @@ function updateInfo() {
         var code = this.codes[i];
         info.innerText += `${Glitter.Utils.dec2bin(code)} (${code})\n`;
     }
-    info.innerText += `${Glitter.Utils.round3(framesWithTags / numFrames * 100)}%`;
+    info.innerText += `${numFrames != 0 ? Glitter.Utils.round3(framesWithTags / numFrames * 100) : 0}%`;
 }
 
 window.addEventListener("onGlitterInit", (e) => {
@@ -89,7 +89,6 @@ window.addEventListener("onGlitterInit", (e) => {
 
 window.addEventListener("onGlitterTagsFound", (e) => {
     drawTags(e.detail.tags);
-    stats.update();
 
     if (collecting && e.detail.tags.length > 0) {
         framesWithTags++;
@@ -97,6 +96,8 @@ window.addEventListener("onGlitterTagsFound", (e) => {
 });
 
 window.addEventListener("onGlitterTick", (e) => {
+    stats.update();
+
     if (collecting) {
         numFrames++;
         updateInfo();
@@ -111,7 +112,13 @@ window.addEventListener("onGlitterCalibrate", (e) => {
 window.addEventListener("touchend", (e) => {
     collecting = !collecting;
     updateInfo();
-    numFrames = 1;
+    if (collecting) {
+        setTimeout(() => {
+            collecting = false;
+            updateInfo();
+        }, 5000);
+    }
+    numFrames = 0;
     framesWithTags = 0;
 });
 

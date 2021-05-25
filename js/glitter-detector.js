@@ -30,6 +30,10 @@ export class GlitterDetector {
             rangeThreshold: 20,
             quadSigma: 0.2,
             minWhiteBlackDiff: 50,
+            ttlFrames: 8,
+            thresDistShape: 50.0,
+            thresDistShapeTTL: 20.0,
+            thresDistCenter: 25.0,
         }
         this.setOptions(options);
 
